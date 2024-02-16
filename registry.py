@@ -6,20 +6,20 @@
 # please read more details about the script, usage options and license info there
 ######
 
-import requests
+import argparse
 import ast
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import base64
 import json
 import pprint
-import base64
+import os
 import re
 import sys
-import os
-import argparse
-import www_authenticate
 from datetime import timedelta, datetime as dt
 from getpass import getpass
 from multiprocessing.pool import ThreadPool
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import www_authenticate
 from dateutil.parser import parse
 from dateutil.tz import tzutc
 
