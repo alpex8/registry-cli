@@ -251,7 +251,7 @@ class Registry:
                 auth=(None if self.username == ""
                     else (self.username, self.password)),
                 verify=not self.no_validate_ssl)
-
+        if DEBUG: print("[debug][send]: result=" + str(result.__dict__))
         # except Exception as error:
         #     print("cannot connect to {0}\nerror {1}".format(
         #         self.hostname,
@@ -265,7 +265,7 @@ class Registry:
         return None
 
     def list_images(self):
-        result = self.send('/v2/_catalog?n=10000')
+        result = self.send('/v2/_catalog?n=1000')
         if result is None:
             return []
 
