@@ -746,7 +746,7 @@ def get_ordered_tags(registry, image_name, tags_list, order_by_date=False):
 def main_loop(args):
     global DEBUG
 
-    DEBUG = True if args.debug else False
+    DEBUG = bool(args.debug)
 
     keep_last_versions = int(args.num)
 
