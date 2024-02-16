@@ -18,7 +18,6 @@ from datetime import timedelta, datetime as dt
 from getpass import getpass
 from multiprocessing.pool import ThreadPool
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import www_authenticate
 from dateutil.parser import parse
 from dateutil.tz import tzutc
@@ -751,7 +750,7 @@ def main_loop(args):
     keep_last_versions = int(args.num)
 
     if args.no_validate_ssl:
-        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
     if args.read_password:
         if args.login is None:
