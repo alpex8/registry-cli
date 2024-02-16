@@ -64,7 +64,7 @@ class Requests:
         if DEBUG: print("[debug][funcname]: bearer_request()")
 
         if DEBUG:
-            print('[debug][registry][request]: {0} {1}'.format(method, url))
+            print(f'[debug][registry][request]: {method} {url}')
             if 'Authorization' in kwargs['headers']:
                 print('[debug][registry][request]: Authorization header:')
 
@@ -85,17 +85,17 @@ class Requests:
                 print('[debug][auth][answer] Auth header:')
                 pprint.pprint(oauth['bearer'])
 
-            # print('[info] retreiving bearer token for {0}'.format(oauth['bearer']['scope']))
-            request_url = '{0}'.format(oauth['bearer']['realm'])
+            # print(f'[info] retreiving bearer token for {oauth['bearer']['scope']}')
+            request_url = f"{oauth['bearer']['realm']}"
             query_separator = '?'
             if 'service' in oauth['bearer']:
-                request_url += '{0}service={1}'.format(query_separator, oauth['bearer']['service'])
+                request_url += f"{query_separator}service={oauth['bearer']['service']}"
                 query_separator = '&'
             if 'scope' in oauth['bearer']:
-                request_url += '{0}scope={1}'.format(query_separator, oauth['bearer']['scope'])
+                request_url += f"{query_separator}scope={oauth['bearer']['scope']}"
 
             if DEBUG:
-                print('[debug][auth][request] Refreshing auth token: POST {0}'.format(request_url))
+                print(f'[debug][auth][request] Refreshing auth token: POST {request_url}')
 
             if args.auth_method == 'GET':
                 try_oauth = requests.get(request_url, auth=auth, **kwargs)
@@ -106,7 +106,7 @@ class Requests:
                 oauth_response = ast.literal_eval(try_oauth._content.decode('utf-8'))
                 token = oauth_response['access_token'] if 'access_token' in oauth_response else oauth_response['token']
             except SyntaxError:
-                print('\n\n[ERROR] couldnt accure token: {0}'.format(try_oauth._content))
+                print(f'\n\n[ERROR] couldnt accure token: {try_oauth._content}')
                 sys.exit(1)
 
             if DEBUG:
@@ -115,7 +115,7 @@ class Requests:
                 pprint.pprint(ast.literal_eval(decode_base64(token_parsed[0])))
                 pprint.pprint(ast.literal_eval(decode_base64(token_parsed[1])))
 
-            kwargs['headers']['Authorization'] = 'Bearer {0}'.format(token)
+            kwargs['headers']['Authorization'] = f'Bearer {token}'
         else:
             return (res, kwargs['headers']['Authorization'])
 
@@ -144,7 +144,7 @@ def decode_base64(data):
 
     """
     data = data.replace('Bearer ','')
-    # print('[debug] base64 string to decode:\n{0}'.format(data))
+    # print(f'[debug] base64 string to decode:\n{data}')
     missing_padding = len(data) % 4
     if missing_padding != 0:
         data += b'='* (4 - missing_padding)
@@ -152,14 +152,13 @@ def decode_base64(data):
 
 
 def get_error_explanation(context, error_code):
-    error_list = {"delete_tag_405": 'You might want to set REGISTRY_STORAGE_DELETE_ENABLED: "true" in your registry',
-                  "get_tag_digest_404": "Try adding flag --digest-method=GET"}
-
-    key = "%s_%s" % (context, error_code)
-
-    if key in error_list.keys():
+    error_list = {
+        "delete_tag_405": 'You might want to set REGISTRY_STORAGE_DELETE_ENABLED: "true" in your registry',
+        "get_tag_digest_404": "Try adding flag --digest-method=GET"
+    }
+    key = f"{context}_{error_code}"
+    if key in error_list:
         return(error_list[key])
-
     return ''
 
 def get_auth_schemes(r,path):
@@ -171,12 +170,11 @@ def get_auth_schemes(r,path):
 
     if DEBUG: print("[debug][funcname]: get_auth_schemes()")
 
-    try_oauth = requests.head('{0}{1}'.format(r.hostname,path), verify=not r.no_validate_ssl)
-
+    try_oauth = requests.head(f'{r.hostname}{path}', verify=not r.no_validate_ssl)
     if 'Www-Authenticate' in try_oauth.headers:
         oauth = www_authenticate.parse(try_oauth.headers['Www-Authenticate'])
         if DEBUG:
-            print('[debug][docker] Auth schemes found:{0}'.format([m for m in oauth]))
+            print(f'[debug][docker] Auth schemes found:{list(oauth)}')
         return [m.lower() for m in oauth]
     else:
         if DEBUG:
@@ -239,19 +237,17 @@ class Registry:
     def send(self, path, method="GET"):
         if 'bearer' in self.auth_schemes:
             (result, self.HEADERS['Authorization']) = self.http.bearer_request(
-                method, "{0}{1}".format(self.hostname, path),
-                auth=(('', '') if self.username in ["", None]
-                    else (self.username, self.password)),
+                method, f"{self.hostname}{path}",
+                auth=('', '') if self.username in ["", None] else (self.username, self.password),
                 headers=self.HEADERS,
                 verify=not self.no_validate_ssl)
         else:
             result = self.http.request(
-                method, "{0}{1}".format(self.hostname, path),
+                method, f"{self.hostname}{path}",
                 headers=self.HEADERS,
-                auth=(None if self.username == ""
-                    else (self.username, self.password)),
+                auth=None if self.username == "" else (self.username, self.password),
                 verify=not self.no_validate_ssl)
-        if DEBUG: print("[debug][send]: result=" + str(result.__dict__))
+        if DEBUG: print(f"[debug][send]: result={result.__dict__}")
         # except Exception as error:
         #     print("cannot connect to {0}\nerror {1}".format(
         #         self.hostname,
@@ -272,7 +268,7 @@ class Registry:
         return json.loads(result.text)['repositories']
 
     def list_tags(self, image_name):
-        result = self.send("/v2/{0}/tags/list".format(image_name))
+        result = self.send(f"/v2/{image_name}/tags/list")
         if result is None:
             return []
 
@@ -295,11 +291,10 @@ class Registry:
     #                 print("Adding {0} to tags list".format(tag))
 
     def get_tag_digest(self, image_name, tag):
-        image_headers = self.send("/v2/{0}/manifests/{1}".format(
-            image_name, tag), method=self.digest_method)
+        image_headers = self.send(f"/v2/{image_name}/manifests/{tag}", method=self.digest_method)
 
         if image_headers is None:
-            print("  tag digest not found: {0}.".format(self.last_error))
+            print(f"  tag digest not found: {self.last_error}")
             print(get_error_explanation("get_tag_digest", self.last_error))
             return None
 
@@ -309,24 +304,21 @@ class Registry:
 
     def delete_tag(self, image_name, tag, dry_run, tag_digests_to_ignore):
         if dry_run:
-            print('would delete tag {0}'.format(tag))
+            print(f'would delete tag {tag}')
             return False
 
         tag_digest = self.get_tag_digest(image_name, tag)
 
         if tag_digest in tag_digests_to_ignore:
-            print("Digest {0} for tag {1} is referenced by another tag or has already been deleted and will be ignored".format(
-                tag_digest, tag))
+            print(f"Digest {tag_digest} for tag {tag} is referenced by another tag or has already been deleted and will be ignored")
             return True
 
         if tag_digest is None:
             return False
 
-        delete_result = self.send("/v2/{0}/manifests/{1}".format(
-            image_name, tag_digest), method="DELETE")
-
+        delete_result = self.send(f"/v2/{image_name}/manifests/{tag_digest}", method="DELETE")
         if delete_result is None:
-            print("failed, error: {0}".format(self.last_error))
+            print(f"failed, error: {self.last_error}")
             print(get_error_explanation("delete_tag", self.last_error))
             return False
 
@@ -337,11 +329,9 @@ class Registry:
 
 
     def list_tag_layers(self, image_name, tag):
-        layers_result = self.send("/v2/{0}/manifests/{1}".format(
-            image_name, tag))
-
+        layers_result = self.send(f"/v2/{image_name}/manifests/{tag}")
         if layers_result is None:
-            print("error {0}".format(self.last_error))
+            print(f"error {self.last_error}")
             return []
 
         json_result = json.loads(layers_result.text)
@@ -353,11 +343,9 @@ class Registry:
         return layers
 
     def get_tag_config(self, image_name, tag):
-        config_result = self.send(
-            "/v2/{0}/manifests/{1}".format(image_name, tag))
-
+        config_result = self.send(f"/v2/{image_name}/manifests/{tag}")
         if config_result is None:
-            print("  tag digest not found: {0}".format(self.last_error))
+            print(f"  tag digest not found: {self.last_error}")
             return []
 
         json_result = json.loads(config_result.text)
@@ -370,23 +358,20 @@ class Registry:
         return tag_config
 
     def get_image_age(self, image_name, image_config):
-        container_header = {"Accept": "{0}".format(
-            image_config['mediaType'])}
+        container_header = {"Accept": f"{image_config['mediaType']}"}
 
         if 'bearer' in self.auth_schemes:
             container_header['Authorization'] = self.HEADERS['Authorization']
-            (response, self.HEADERS['Authorization']) = self.http.bearer_request("GET", "{0}{1}".format(self.hostname, "/v2/{0}/blobs/{1}".format(
-                image_name, image_config['digest'])),
-                auth=(('', '') if self.username in ["", None]
-                    else (self.username, self.password)),
+            (response, self.HEADERS['Authorization']) = self.http.bearer_request("GET",
+                f"{self.hostname}/v2/{image_name}/blobs/{image_config['digest']}",
+                auth=(('', '') if self.username in ["", None] else (self.username, self.password)),
                 headers=container_header,
                 verify=not self.no_validate_ssl)
         else:
-            response = self.http.request("GET", "{0}{1}".format(self.hostname, "/v2/{0}/blobs/{1}".format(
-                image_name, image_config['digest'])),
+            response = self.http.request("GET",
+                f"{self.hostname}/v2/{image_name}/blobs/{image_config['digest']}",
                 headers=container_header,
-                auth=(None if self.username == ""
-                    else (self.username, self.password)),
+                auth=(None if self.username == "" else (self.username, self.password)),
                 verify=not self.no_validate_ssl)
 
         if str(response.status_code)[0] == '2':
@@ -394,7 +379,7 @@ class Registry:
             image_age = json.loads(response.text)
             return image_age['created']
         else:
-            print(" blob not found: {0}".format(self.last_error))
+            print(f" blob not found: {self.last_error}")
             self.last_error = response.status_code
             return []
 
@@ -443,16 +428,14 @@ for more detail on garbage collection read here:
 
     parser.add_argument(
         '-d', '--delete',
-        help=('If specified, delete all but last {0} tags '
-              'of all images').format(CONST_KEEP_LAST_VERSIONS),
+        help=f'If specified, delete all but last {CONST_KEEP_LAST_VERSIONS} tags of all images',
         action='store_const',
         default=False,
         const=True)
 
     parser.add_argument(
         '-n', '--num',
-        help=('Set the number of tags to keep'
-              '({0} if not set)').format(CONST_KEEP_LAST_VERSIONS),
+        help=f'Set the number of tags to keep {CONST_KEEP_LAST_VERSIONS} if not set)',
         default=CONST_KEEP_LAST_VERSIONS,
         nargs='?',
         metavar='N')
@@ -578,19 +561,18 @@ def delete_tags(
         print("Getting digests for tags to keep:")
         for tag in tags_to_keep:
 
-            print("Getting digest for tag {0}".format(tag))
+            print(f"Getting digest for tag {tag}")
             digest = registry.get_tag_digest(image_name, tag)
             if digest is None:
-                print("Tag {0} does not exist for image {1}. Ignore here.".format(
-                    tag, image_name))
+                print(f"Tag {tag} does not exist for image {image_name}. Ignore here.")
                 continue
 
-            print("Keep digest {0} for tag {1}".format(digest, tag))
+            print(f"Keep digest {digest} for tag {tag}")
 
             keep_tag_digests.append(digest)
 
     def delete(tag):
-        print("  deleting tag {0}".format(tag))
+        print(f"  deleting tag {tag}")
         registry.delete_tag(image_name, tag, dry_run, keep_tag_digests)
 
     p = ThreadPool(4)
@@ -616,11 +598,11 @@ def get_tags_like(args_tags_like, tags_list):
     result = set()
     for tag_like in args_tags_like:
         if not args.plain:
-            print("tag like: {0}".format(tag_like))
+            print(f"tag like: {tag_like}")
         for tag in tags_list:
             if re.search(tag_like, tag):
                 if not args.plain:
-                    print("Adding {0} to tags list".format(tag))
+                    print(f"Adding {tag} to tags list")
                 result.add(tag)
     return result
 
@@ -659,8 +641,7 @@ def delete_tags_by_age(registry, image_name, dry_run, hours, tags_to_keep):
             continue
 
         if parse(image_age).astimezone(tzutc()) < dt.now(tzutc()) - timedelta(hours=int(hours)):
-            print("will be deleted tag: {0} timestamp: {1}".format(
-                tag, image_age))
+            print(f"will be deleted tag: {tag} timestamp: {image_age}")
             tags_to_delete.append(tag)
 
     print('------------deleting-------------')
@@ -678,12 +659,10 @@ def get_newer_tags(registry, image_name, hours, tags_list):
             print("timestamp not found")
             return None
         if parse(image_age).astimezone(tzutc()) >= dt.now(tzutc()) - timedelta(hours=int(hours)):
-            print("Keeping tag: {0} timestamp: {1}".format(
-                tag, image_age))
+            print(f"Keeping tag: {tag} timestamp: {image_age}")
             return tag
         else:
-            print("Will delete tag: {0} timestamp: {1}".format(
-                tag, image_age))
+            print(f"Will delete tag: {tag} timestamp: {image_age}")
             return None
 
     print('---------------------------------')
@@ -786,7 +765,7 @@ def main_loop(args):
     registry.auth_schemes = get_auth_schemes(registry,'/v2/_catalog')
 
     if args.delete:
-        print("Will delete all but {0} last tags".format(keep_last_versions))
+        print(f"Will delete all but {keep_last_versions} last tags")
 
     if args.image is not None:
         image_list = args.image
@@ -800,7 +779,7 @@ def main_loop(args):
     for image_name in image_list:
         if not args.plain:
             print("---------------------------------")
-            print("Image: {0}".format(image_name))
+            print(f"Image: {image_name}")
         all_tags_list = registry.list_tags(image_name)
 
         if not all_tags_list:
@@ -815,18 +794,16 @@ def main_loop(args):
         # print(tags and optionally layers
         for tag in tags_list:
             if not args.plain:
-                print("  tag: {0}".format(tag))
+                print(f"  tag: {tag}")
             else:
-                print("{0}:{1}".format(image_name, tag))
+                print(f"{image_name}:{tag}")
 
             if args.layers:
                 for layer in registry.list_tag_layers(image_name, tag):
                     if 'size' in layer:
-                        print("    layer: {0}, size: {1}".format(
-                            layer['digest'], layer['size']))
+                        print(f"    layer: {layer['digest']}, size: {layer['size']}")
                     else:
-                        print("    layer: {0}".format(
-                            layer['blobSum']))
+                        print(f"    layer: {layer['blobSum']}")
 
         # add tags to "tags_to_keep" list if we have regexp "tags_to_keep"
         # entries, a number of hours for "keep_by_hours" or if the user
