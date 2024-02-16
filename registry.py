@@ -176,10 +176,9 @@ def get_auth_schemes(r,path):
         if DEBUG:
             print(f'[debug][docker] Auth schemes found:{list(oauth)}')
         return [m.lower() for m in oauth]
-    else:
-        if DEBUG:
-            print('[debug][docker] No Auth schemes found')
-        return []
+    if DEBUG:
+        print('[debug][docker] No Auth schemes found')
+    return []
 
 # class to manipulate registry
 class Registry:
@@ -378,10 +377,9 @@ class Registry:
             self.last_error = None
             image_age = json.loads(response.text)
             return image_age['created']
-        else:
-            print(f" blob not found: {self.last_error}")
-            self.last_error = response.status_code
-            return []
+        print(f" blob not found: {self.last_error}")
+        self.last_error = response.status_code
+        return []
 
 
 def parse_args(args=None):
@@ -661,9 +659,8 @@ def get_newer_tags(registry, image_name, hours, tags_list):
         if parse(image_age).astimezone(tzutc()) >= dt.now(tzutc()) - timedelta(hours=int(hours)):
             print(f"Keeping tag: {tag} timestamp: {image_age}")
             return tag
-        else:
-            print(f"Will delete tag: {tag} timestamp: {image_age}")
-            return None
+        print(f"Will delete tag: {tag} timestamp: {image_age}")
+        return None
 
     print('---------------------------------')
     p = ThreadPool(4)
