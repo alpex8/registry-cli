@@ -18,6 +18,7 @@ from datetime import timedelta, datetime as dt
 from getpass import getpass
 from multiprocessing.pool import ThreadPool
 import requests
+import urllib3
 import www_authenticate
 from dateutil.parser import parse
 from dateutil.tz import tzutc
@@ -147,7 +148,7 @@ def decode_base64(data):
     missing_padding = len(data) % 4
     if missing_padding != 0:
         data += b'='* (4 - missing_padding)
-    return base64.decodestring(data)
+    return base64.decodebytes(data)
 
 
 def get_error_explanation(context, error_code):
@@ -750,7 +751,7 @@ def main_loop(args):
     keep_last_versions = int(args.num)
 
     if args.no_validate_ssl:
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     if args.read_password:
         if args.login is None:
