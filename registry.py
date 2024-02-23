@@ -11,7 +11,6 @@ import ast
 import base64
 import json
 import pprint
-import os
 import re
 import sys
 from datetime import timedelta, datetime as dt
