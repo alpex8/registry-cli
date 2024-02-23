@@ -417,7 +417,7 @@ class TestImageAge(unittest.TestCase):
         )
         json_payload = {'mediaType': 'application/vnd.docker.container.image.v1+json', 'size': 12953,
                         'digest': 'sha256:8d71dfbf239c0015ad66993d55d3954cee2d52d86f829fdff9ccfb9f23b75aa8'}
-        header = {"Accept": "{0}".format(json_payload['mediaType'])}
+        header = {"Accept": f"{json_payload['mediaType']}"}
         response = self.registry.get_image_age('image1', json_payload)
 
         self.registry.http.request.assert_called_with(
@@ -435,7 +435,7 @@ class TestImageAge(unittest.TestCase):
         self.registry.http.reset_return_value(400, "err")
         json_payload = {'mediaType': 'application/vnd.docker.container.image.v1+json', 'size': 12953,
                         'digest': 'sha256:8d71dfbf239c0015ad66993d55d3954cee2d52d86f829fdff9ccfb9f23b75aa8'}
-        header = {"Accept": "{0}".format(json_payload['mediaType'])}
+        header = {"Accept": f"{json_payload['mediaType']}"}
         response = self.registry.get_image_age('image1', json_payload)
 
         self.registry.http.request.assert_called_with(
