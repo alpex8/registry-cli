@@ -74,49 +74,48 @@ class Requests:
             LOGGER.debug(f'[registry][request]: {method} {url}')
             if 'Authorization' in kwargs['headers']:
                 LOGGER.debug('[registry][request]: Authorization header:')
-                _log_token(kwargs['headers']['Authorization'].split('.'))
+                _log_token(kwargs['headers']['Authorization'])
+
         res = requests.request(method, url, **kwargs)
         if str(res.status_code)[0] == '2':
             LOGGER.debug("[registry] accepted")
             return (res, kwargs['headers']['Authorization'])
-
-        if res.status_code == 401:
-            LOGGER.debug("[debug][registry] Access denied. Refreshing token...")
-            oauth = www_authenticate.parse(res.headers['Www-Authenticate'])
-            LOGGER.debug('[auth][answer] Auth header:')
-            LOGGER.debug(pprint.pformat(oauth['bearer']))
-
-            # print(f'[info] retreiving bearer token for {oauth['bearer']['scope']}')
-            request_url = f"{oauth['bearer']['realm']}"
-            query_separator = '?'
-            if 'service' in oauth['bearer']:
-                request_url += f"{query_separator}service={oauth['bearer']['service']}"
-                query_separator = '&'
-            if 'scope' in oauth['bearer']:
-                request_url += f"{query_separator}scope={oauth['bearer']['scope']}"
-
-            LOGGER.debug(f'[auth][request] Refreshing auth token: POST {request_url}')
-
-            if ARGS.auth_method == 'GET':
-                try_oauth = requests.get(request_url, auth=auth, **kwargs)
-            else:
-                try_oauth = requests.post(request_url, auth=auth, **kwargs)
-
-            try:
-                oauth_response = ast.literal_eval(try_oauth.content.decode('utf-8'))
-                token = oauth_response['access_token'] if 'access_token' in oauth_response else oauth_response['token']
-            except SyntaxError:
-                print(f'\n\n[ERROR] couldnt accure token: {try_oauth.content}')
-                sys.exit(1)
-
-            if LOGGER.getEffectiveLevel() == logging.DEBUG:
-                LOGGER.debug('[auth] token issued: ')
-                _log_token(token)
-
-            kwargs['headers']['Authorization'] = f'Bearer {token}'
-        else:
+        if res.status_code != 401:
             return (res, kwargs['headers']['Authorization'])
 
+        LOGGER.debug("[debug][registry] Access denied. Refreshing token...")
+        oauth = www_authenticate.parse(res.headers['Www-Authenticate'])
+        LOGGER.debug('[auth][answer] Auth header:')
+        LOGGER.debug(pprint.pformat(oauth['bearer']))
+
+        # print(f'[info] retreiving bearer token for {oauth['bearer']['scope']}')
+        request_url = f"{oauth['bearer']['realm']}"
+        query_separator = '?'
+        if 'service' in oauth['bearer']:
+            request_url += f"{query_separator}service={oauth['bearer']['service']}"
+            query_separator = '&'
+        if 'scope' in oauth['bearer']:
+            request_url += f"{query_separator}scope={oauth['bearer']['scope']}"
+
+        LOGGER.debug(f'[auth][request] Refreshing auth token: POST {request_url}')
+
+        if ARGS.auth_method == 'GET':
+            try_oauth = requests.get(request_url, auth=auth, **kwargs)
+        else:
+            try_oauth = requests.post(request_url, auth=auth, **kwargs)
+
+        try:
+            oauth_response = ast.literal_eval(try_oauth.content.decode('utf-8'))
+            token = oauth_response['access_token'] if 'access_token' in oauth_response else oauth_response['token']
+        except SyntaxError:
+            print(f'\n\n[ERROR] couldnt accure token: {try_oauth.content}')
+            sys.exit(1)
+
+        if LOGGER.getEffectiveLevel() == logging.DEBUG:
+            LOGGER.debug('[auth] token issued: ')
+            _log_token(token)
+
+        kwargs['headers']['Authorization'] = f'Bearer {token}'
         res = requests.request(method, url, **kwargs)
         return (res, kwargs['headers']['Authorization'])
 
