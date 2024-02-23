@@ -60,7 +60,6 @@ class Requests:
         return requests.request(method, url, **kwargs)
 
     def bearer_request(self, method, url, auth, **kwargs):
-        global DEBUG
         if DEBUG: print("[debug][funcname]: bearer_request()")
 
         if DEBUG:
@@ -720,10 +719,6 @@ def get_ordered_tags(registry, image_name, tags_list, order_by_date=False):
 
 
 def main_loop(args):
-    global DEBUG
-
-    DEBUG = bool(args.debug)
-
     keep_last_versions = int(args.num)
 
     if args.no_validate_ssl:
@@ -825,6 +820,7 @@ def main_loop(args):
 
 if __name__ == "__main__":
     args = parse_args()
+    DEBUG = bool(args.debug)
     try:
         main_loop(args)
     except KeyboardInterrupt:
