@@ -156,7 +156,7 @@ def get_error_explanation(context, error_code):
     }
     key = f"{context}_{error_code}"
     if key in error_list:
-        return(error_list[key])
+        return error_list[key]
     return ''
 
 def get_auth_schemes(r,path):
@@ -384,7 +384,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(
         description="List or delete images from Docker registry",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=("""
+        epilog="""
 IMPORTANT: after removing the tags, run the garbage collector
            on your registry host:
 
@@ -399,7 +399,7 @@ or if you are not using docker-compose:
 
 for more detail on garbage collection read here:
    https://docs.docker.com/registry/garbage-collection/
-                """))
+                """)
     parser.add_argument(
         '-l', '--login',
         help="Login and password for access to docker registry",
