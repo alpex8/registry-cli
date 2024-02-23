@@ -348,10 +348,7 @@ class Registry:
         if json_result['schemaVersion'] == 1:
             print("Docker schemaVersion 1 isn't supported for deleting by age now")
             sys.exit(1)
-        else:
-            tag_config = json_result['config']
-
-        return tag_config
+        return json_result['config']
 
     def get_image_age(self, image_name, image_config):
         """Registry.get_image_age"""
