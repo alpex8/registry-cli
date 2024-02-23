@@ -229,8 +229,7 @@ class TestListTags(unittest.TestCase):
         self.assertEqual(self.registry.last_error, None)
 
     def test_list_tags_like_various(self):
-        tags_list = set(['FINAL_0.1', 'SNAPSHOT_0.1',
-                         "0.1.SNAP", "1.0.0_FINAL"])
+        tags_list = set(['FINAL_0.1', 'SNAPSHOT_0.1', "0.1.SNAP", "1.0.0_FINAL"])
         for plain in [True, False]:
             self.assertEqual(get_tags(tags_list, "", set(
                 ["FINAL"]), plain), set(["FINAL_0.1", "1.0.0_FINAL"]))

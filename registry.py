@@ -262,12 +262,11 @@ class Registry:
 
     def list_tags(self, image_name):
         result = self.send(f"/v2/{image_name}/tags/list")
-        if result is None:
+        if not result:
             return []
-
         try:
             tags_list = json.loads(result.text)['tags']
-        except ValueError:
+        except (KeyError, ValueError):
             self.last_error = "list_tags: invalid json response"
             return []
 
