@@ -196,19 +196,19 @@ class Registry:
         self.digest_method = "HEAD"
 
     def parse_login(self, login):
-        if login is not None:
+        if not login:
+            return (None, None)
 
-            if ':' not in login:
-                self.last_error = "Please provide -l in the form USER:PASSWORD"
-                return (None, None)
+        if ':' not in login:
+            self.last_error = "Please provide -l in the form USER:PASSWORD"
+            return (None, None)
 
-            self.last_error = None
-            (username, password) = login.split(':', 1)
-            username = username.strip('"').strip("'")
-            password = password.strip('"').strip("'")
-            return (username, password)
+        self.last_error = None
+        (username, password) = login.split(':', 1)
+        username = username.strip('"').strip("'")
+        password = password.strip('"').strip("'")
+        return (username, password)
 
-        return (None, None)
 
 
     @staticmethod
