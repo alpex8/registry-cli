@@ -1,14 +1,12 @@
 import unittest
-
 from datetime import datetime
-
 from dateutil.tz import tzutc, tzoffset
 
+from mock import MagicMock, patch
+import requests
 from registry import Registry, Requests, get_tags, parse_args, \
     delete_tags, delete_tags_by_age, get_error_explanation, get_newer_tags, \
     keep_images_like, main_loop, get_datetime_tags, get_ordered_tags
-from mock import MagicMock, patch
-import requests
 
 
 class ReturnValue:
@@ -197,7 +195,7 @@ class TestListTags(unittest.TestCase):
 
     def test_list_one_tag_ok(self):
         self.registry.http.reset_return_value(status_code=200,
-                                              text=u'{"name":"image1","tags":["0.1.306"]}')
+                                              text='{"name":"image1","tags":["0.1.306"]}')
 
         response = self.registry.list_tags('image1')
         self.assertEqual(response, ["0.1.306"])
@@ -222,7 +220,7 @@ class TestListTags(unittest.TestCase):
 
     def test_list_one_tag_sorted(self):
         self.registry.http.reset_return_value(status_code=200,
-                                              text=u'{"name":"image1","tags":["0.1.306", "0.1.300", "0.1.290"]}')
+                                              text='{"name":"image1","tags":["0.1.306", "0.1.300", "0.1.290"]}')
 
         response = self.registry.list_tags('image1')
         self.assertEqual(response, ["0.1.290", "0.1.300", "0.1.306"])
