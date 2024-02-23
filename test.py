@@ -780,8 +780,9 @@ class TestGetOrderedTags(unittest.TestCase):
 
     def test_tags_are_ordered_by_name_by_default(self):
         tags = ["v1", "v10", "v2"]
-        ordered_tags = get_ordered_tags(registry=None, image_name=None, tags_list=tags)
-        self.assertEqual(ordered_tags, ["v1", "v2", "v10"])
+        for plain in [True, False]:
+            ordered_tags = get_ordered_tags(registry=None, image_name=None, tags_list=tags, plain=plain)
+            self.assertEqual(ordered_tags, ["v1", "v2", "v10"])
 
     @patch('registry.get_datetime_tags')
     def test_tags_are_ordered_ascending_by_date_if_the_option_is_given(self, get_datetime_tags_patched):
@@ -808,8 +809,8 @@ class TestGetOrderedTags(unittest.TestCase):
                 "datetime": datetime(2021, 1, 1, tzinfo=tzutc())
             }
         ]
-        ordered_tags = get_ordered_tags(registry="registry", image_name="image", tags_list=tags, order_by_date=True)
-        get_datetime_tags_patched.assert_called_once_with("registry", "image", tags)
+        ordered_tags = get_ordered_tags(registry="registry", image_name="image", tags_list=tags, plain=True, order_by_date=True)
+        get_datetime_tags_patched.assert_called_once_with("registry", "image", tags, True)
         self.assertEqual(ordered_tags, ["9d5fab2", "f4ba381", "ddd514c", "ff24a83", "e61d48b"])
 
 

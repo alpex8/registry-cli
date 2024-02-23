@@ -93,7 +93,7 @@ class Requests:
 
             LOGGER.debug(f'[auth][request] Refreshing auth token: POST {request_url}')
 
-            if args.auth_method == 'GET':
+            if ARGS.auth_method == 'GET':
                 try_oauth = requests.get(request_url, auth=auth, **kwargs)
             else:
                 try_oauth = requests.post(request_url, auth=auth, **kwargs)
@@ -695,9 +695,9 @@ def keep_images_like(image_list, regexp_list):
     return result
 
 
-def get_ordered_tags(registry, image_name, tags_list, order_by_date=False):
+def get_ordered_tags(registry, image_name, tags_list, plain, order_by_date=False):
     if order_by_date:
-        tags_date = get_datetime_tags(registry, image_name, tags_list)
+        tags_date = get_datetime_tags(registry, image_name, tags_list, plain)
         sorted_tags_by_date = sorted(
             tags_date,
             key=lambda x: x["datetime"]
@@ -764,7 +764,7 @@ def main_loop(args):
             continue
 
         if args.order_by_date:
-            tags_list = get_ordered_tags(registry, image_name, all_tags_list, args.order_by_date)
+            tags_list = get_ordered_tags(registry, image_name, all_tags_list, args.plain, args.order_by_date)
         else:
             tags_list = get_tags(all_tags_list, image_name, args.tags_like, args.plain)
 
@@ -778,7 +778,7 @@ def main_loop(args):
         keep_tags = []
         keep_tags.extend(args.keep_tags)
         if args.keep_tags_like:
-            keep_tags.extend(get_tags_like(args.keep_tags_like, tags_list))
+            keep_tags.extend(get_tags_like(args.keep_tags_like, tags_list, args.plain))
         if args.keep_by_hours:
             keep_tags.extend(get_newer_tags(registry, image_name,
                                             args.keep_by_hours, tags_list))
@@ -810,11 +810,11 @@ def main_loop(args):
                                args.delete_by_hours, keep_tags)
 
 if __name__ == "__main__":
-    args = parse_args()
-    if bool(args.debug):
+    ARGS = parse_args()
+    if bool(ARGS.debug):
         LOGGER.setLevel(logging.DEBUG)
     try:
-        main_loop(args)
+        main_loop(ARGS)
     except KeyboardInterrupt:
         print("Ctrl-C pressed, quitting")
         sys.exit(1)
