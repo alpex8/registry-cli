@@ -64,7 +64,7 @@ class Requests:
 
     def request(self, method, url, **kwargs):
         """Requests.request"""
-        return requests.request(method, url, **kwargs)
+        return requests.request(method, url, timeout=30, **kwargs)
 
 
     def bearer_request(self, method, url, auth, **kwargs):
@@ -76,7 +76,7 @@ class Requests:
                 LOGGER.debug('[registry][request]: Authorization header:')
                 _log_token(kwargs['headers']['Authorization'])
 
-        res = requests.request(method, url, **kwargs)
+        res = requests.request(method, url, timeout=30, **kwargs)
         if str(res.status_code)[0] == '2':
             LOGGER.debug("[registry] accepted")
             return (res, kwargs['headers']['Authorization'])
@@ -100,9 +100,9 @@ class Requests:
         LOGGER.debug(f'[auth][request] Refreshing auth token: POST {request_url}')
 
         if ARGS.auth_method == 'GET':
-            try_oauth = requests.get(request_url, auth=auth, **kwargs)
+            try_oauth = requests.get(request_url, auth=auth, timeout=30, **kwargs)
         else:
-            try_oauth = requests.post(request_url, auth=auth, **kwargs)
+            try_oauth = requests.post(request_url, auth=auth, timeout=30, **kwargs)
 
         try:
             oauth_response = ast.literal_eval(try_oauth.content.decode('utf-8'))
@@ -116,7 +116,7 @@ class Requests:
             _log_token(token)
 
         kwargs['headers']['Authorization'] = f'Bearer {token}'
-        res = requests.request(method, url, **kwargs)
+        res = requests.request(method, url, timeout=30, **kwargs)
         return (res, kwargs['headers']['Authorization'])
 
 
@@ -165,7 +165,7 @@ def get_auth_schemes(r,path):
          - www-authenticate: bearer
     """
     LOGGER.debug("[funcname]: get_auth_schemes()")
-    try_oauth = requests.head(f'{r.hostname}{path}', verify=not r.no_validate_ssl)
+    try_oauth = requests.head(f'{r.hostname}{path}', verify=not r.no_validate_ssl, timeout=30)
     if 'Www-Authenticate' in try_oauth.headers:
         oauth = www_authenticate.parse(try_oauth.headers['Www-Authenticate'])
         LOGGER.debug(f'[docker] Auth schemes found:{list(oauth)}')
