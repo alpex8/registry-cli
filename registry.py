@@ -10,6 +10,7 @@ import argparse
 import ast
 import base64
 import json
+import logging
 import pprint
 import re
 import sys
@@ -45,12 +46,13 @@ from dateutil.tz import tzutc
 # for more detail on garbage collection read here:
 # https://docs.docker.com/registry/garbage-collection/
 
+# pylint: disable=logging-fstring-interpolation
+
+# logger object for debug loggging
+LOGGER = logging.getLogger()
 
 # number of image versions to keep
 CONST_KEEP_LAST_VERSIONS = 10
-
-# print debug messages
-DEBUG = False
 
 # this class is created for testing
 class Requests:
@@ -59,29 +61,26 @@ class Requests:
         return requests.request(method, url, **kwargs)
 
     def bearer_request(self, method, url, auth, **kwargs):
-        if DEBUG: print("[debug][funcname]: bearer_request()")
-
-        if DEBUG:
-            print(f'[debug][registry][request]: {method} {url}')
+        LOGGER.debug("[funcname]: bearer_request()")
+        if LOGGER.getEffectiveLevel() == logging.DEBUG:
+            LOGGER.debug(f'[registry][request]: {method} {url}')
             if 'Authorization' in kwargs['headers']:
-                print('[debug][registry][request]: Authorization header:')
+                LOGGER.debug('[registry][request]: Authorization header:')
 
                 token_parsed = kwargs['headers']['Authorization'].split('.')
-                pprint.pprint(ast.literal_eval(decode_base64(token_parsed[0])))
-                pprint.pprint(ast.literal_eval(decode_base64(token_parsed[1])))
+                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[0]))))
+                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[1]))))
 
         res = requests.request(method, url, **kwargs)
         if str(res.status_code)[0] == '2':
-            if DEBUG: print("[debug][registry] accepted")
+            LOGGER.debug("[registry] accepted")
             return (res, kwargs['headers']['Authorization'])
 
         if res.status_code == 401:
-            if DEBUG: print("[debug][registry] Access denied. Refreshing token...")
+            LOGGER.debug("[debug][registry] Access denied. Refreshing token...")
             oauth = www_authenticate.parse(res.headers['Www-Authenticate'])
-
-            if DEBUG:
-                print('[debug][auth][answer] Auth header:')
-                pprint.pprint(oauth['bearer'])
+            LOGGER.debug('[auth][answer] Auth header:')
+            LOGGER.debug(pprint.pformat(oauth['bearer']))
 
             # print(f'[info] retreiving bearer token for {oauth['bearer']['scope']}')
             request_url = f"{oauth['bearer']['realm']}"
@@ -92,8 +91,7 @@ class Requests:
             if 'scope' in oauth['bearer']:
                 request_url += f"{query_separator}scope={oauth['bearer']['scope']}"
 
-            if DEBUG:
-                print(f'[debug][auth][request] Refreshing auth token: POST {request_url}')
+            LOGGER.debug(f'[auth][request] Refreshing auth token: POST {request_url}')
 
             if args.auth_method == 'GET':
                 try_oauth = requests.get(request_url, auth=auth, **kwargs)
@@ -107,11 +105,11 @@ class Requests:
                 print(f'\n\n[ERROR] couldnt accure token: {try_oauth._content}')
                 sys.exit(1)
 
-            if DEBUG:
-                print('[debug][auth] token issued: ')
+            if LOGGER.getEffectiveLevel() == logging.DEBUG:
+                LOGGER.debug('[auth] token issued: ')
                 token_parsed=token.split('.')
-                pprint.pprint(ast.literal_eval(decode_base64(token_parsed[0])))
-                pprint.pprint(ast.literal_eval(decode_base64(token_parsed[1])))
+                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[0]))))
+                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[1]))))
 
             kwargs['headers']['Authorization'] = f'Bearer {token}'
         else:
@@ -166,16 +164,14 @@ def get_auth_schemes(r,path):
          - www-authenticate: bearer
     """
 
-    if DEBUG: print("[debug][funcname]: get_auth_schemes()")
+    LOGGER.debug("[funcname]: get_auth_schemes()")
 
     try_oauth = requests.head(f'{r.hostname}{path}', verify=not r.no_validate_ssl)
     if 'Www-Authenticate' in try_oauth.headers:
         oauth = www_authenticate.parse(try_oauth.headers['Www-Authenticate'])
-        if DEBUG:
-            print(f'[debug][docker] Auth schemes found:{list(oauth)}')
+        LOGGER.debug(f'[docker] Auth schemes found:{list(oauth)}')
         return [m.lower() for m in oauth]
-    if DEBUG:
-        print('[debug][docker] No Auth schemes found')
+    LOGGER.debug('[docker] No Auth schemes found')
     return []
 
 # class to manipulate registry
@@ -244,7 +240,7 @@ class Registry:
                 headers=self.HEADERS,
                 auth=None if self.username == "" else (self.username, self.password),
                 verify=not self.no_validate_ssl)
-        if DEBUG: print(f"[debug][send]: result={result.__dict__}")
+        LOGGER.debug(f"[send]: result={result.__dict__}")
         # except Exception as error:
         #     print("cannot connect to {0}\nerror {1}".format(
         #         self.hostname,
@@ -819,7 +815,8 @@ def main_loop(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    DEBUG = bool(args.debug)
+    if bool(args.debug):
+        LOGGER.setLevel(logging.DEBUG)
     try:
         main_loop(args)
     except KeyboardInterrupt:
