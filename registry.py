@@ -708,6 +708,26 @@ def get_ordered_tags(registry, image_name, tags_list, order_by_date=False):
     return sorted(tags_list, key=natural_keys)
 
 
+def read_password(login) -> str:
+    if login is None:
+        print("Please provide -l when using -w")
+        sys.exit(1)
+    username = login.split(':', 1)[0]
+    password = getpass() if sys.stdin.isatty() else sys.stdin.read()
+    if not password:
+        print("Password was not provided")
+        sys.exit(1)
+    return username + ':' + password.strip()
+
+def print_tag(registry: Registry, image_name: str, tag: str, plain: bool, layers: bool):
+    print(f"{image_name}:{tag}" if plain else f"  tag: {tag}")
+    if layers:
+        for layer in registry.list_tag_layers(image_name, tag):
+            if 'size' in layer:
+                print(f"    layer: {layer['digest']}, size: {layer['size']}")
+            else:
+                print(f"    layer: {layer['blobSum']}")
+
 def main_loop(args):
     keep_last_versions = int(args.num)
 
@@ -715,15 +735,7 @@ def main_loop(args):
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     if args.read_password:
-        if args.login is None:
-            print("Please provide -l when using -w")
-            sys.exit(1)
-        username = args.login.split(':', 1)[0]
-        password = getpass() if sys.stdin.isatty() else sys.stdin.read()
-        if not password:
-            print("Password was not provided")
-            sys.exit(1)
-        args.login = username + ':' + password.strip()
+        args.login = read_password(args.login)
 
     registry = Registry.create(args.host, args.login, args.no_validate_ssl,
                                args.digest_method)
@@ -733,7 +745,7 @@ def main_loop(args):
     if args.delete:
         print(f"Will delete all but {keep_last_versions} last tags")
 
-    if args.image is not None:
+    if args.image:
         image_list = args.image
     else:
         image_list = registry.list_images()
@@ -759,17 +771,7 @@ def main_loop(args):
 
         # print(tags and optionally layers
         for tag in tags_list:
-            if not args.plain:
-                print(f"  tag: {tag}")
-            else:
-                print(f"{image_name}:{tag}")
-
-            if args.layers:
-                for layer in registry.list_tag_layers(image_name, tag):
-                    if 'size' in layer:
-                        print(f"    layer: {layer['digest']}, size: {layer['size']}")
-                    else:
-                        print(f"    layer: {layer['blobSum']}")
+            print_tag(registry, image_name, tag, args.plain, args.layers)
 
         # add tags to "tags_to_keep" list if we have regexp "tags_to_keep"
         # entries, a number of hours for "keep_by_hours" or if the user
