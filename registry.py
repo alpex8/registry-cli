@@ -58,9 +58,11 @@ CONST_KEEP_LAST_VERSIONS = 10
 class Requests:
 
     def request(self, method, url, **kwargs):
+        """Requests.request"""
         return requests.request(method, url, **kwargs)
 
     def bearer_request(self, method, url, auth, **kwargs):
+        """Requests.bearer_request"""
         LOGGER.debug("[funcname]: bearer_request()")
         if LOGGER.getEffectiveLevel() == logging.DEBUG:
             LOGGER.debug(f'[registry][request]: {method} {url}')
@@ -99,10 +101,10 @@ class Requests:
                 try_oauth = requests.post(request_url, auth=auth, **kwargs)
 
             try:
-                oauth_response = ast.literal_eval(try_oauth._content.decode('utf-8'))
+                oauth_response = ast.literal_eval(try_oauth.content.decode('utf-8'))
                 token = oauth_response['access_token'] if 'access_token' in oauth_response else oauth_response['token']
             except SyntaxError:
-                print(f'\n\n[ERROR] couldnt accure token: {try_oauth._content}')
+                print(f'\n\n[ERROR] couldnt accure token: {try_oauth.content}')
                 sys.exit(1)
 
             if LOGGER.getEffectiveLevel() == logging.DEBUG:
@@ -163,9 +165,7 @@ def get_auth_schemes(r,path):
          - www-authenticate: basic
          - www-authenticate: bearer
     """
-
     LOGGER.debug("[funcname]: get_auth_schemes()")
-
     try_oauth = requests.head(f'{r.hostname}{path}', verify=not r.no_validate_ssl)
     if 'Www-Authenticate' in try_oauth.headers:
         oauth = www_authenticate.parse(try_oauth.headers['Www-Authenticate'])
@@ -176,12 +176,12 @@ def get_auth_schemes(r,path):
 
 # class to manipulate registry
 class Registry:
-
     # this is required for proper digest processing
     HEADERS = {"Accept":
                "application/vnd.docker.distribution.manifest.v2+json"}
 
     def __init__(self):
+        """Registry.__init__"""
         self.username = None
         self.password = None
         self.auth_schemes = []
@@ -191,7 +191,9 @@ class Registry:
         self.last_error = None
         self.digest_method = "HEAD"
 
+
     def parse_login(self, login):
+        """Registry.parse_login"""
         if not login:
             return (None, None)
 
@@ -206,9 +208,9 @@ class Registry:
         return (username, password)
 
 
-
     @staticmethod
     def _create(host, login, no_validate_ssl, digest_method = "HEAD"):
+        """Registry._create"""
         r = Registry()
 
         (r.username, r.password) = r.parse_login(login)
@@ -224,10 +226,12 @@ class Registry:
 
     @staticmethod
     def create(*args, **kw):
+        """Registry.create"""
         return Registry._create(*args, **kw)
 
 
     def send(self, path, method="GET"):
+        """Registry.send"""
         if 'bearer' in self.auth_schemes:
             (result, self.HEADERS['Authorization']) = self.http.bearer_request(
                 method, f"{self.hostname}{path}",
@@ -254,6 +258,7 @@ class Registry:
         return None
 
     def list_images(self):
+        """Registry.list_images"""
         result = self.send('/v2/_catalog?n=1000')
         if result is None:
             return []
@@ -261,6 +266,7 @@ class Registry:
         return json.loads(result.text)['repositories']
 
     def list_tags(self, image_name):
+        """Registry.list_tags"""
         result = self.send(f"/v2/{image_name}/tags/list")
         if not result:
             return []
@@ -283,6 +289,7 @@ class Registry:
     #                 print("Adding {0} to tags list".format(tag))
 
     def get_tag_digest(self, image_name, tag):
+        """Registry.get_tag_digest"""
         image_headers = self.send(f"/v2/{image_name}/manifests/{tag}", method=self.digest_method)
 
         if image_headers is None:
@@ -295,6 +302,7 @@ class Registry:
         return tag_digest
 
     def delete_tag(self, image_name, tag, dry_run, tag_digests_to_ignore):
+        """Registry.delete_tag"""
         if dry_run:
             print(f'would delete tag {tag}')
             return False
@@ -321,6 +329,7 @@ class Registry:
 
 
     def list_tag_layers(self, image_name, tag):
+        """Registry.list_tag_layers"""
         layers_result = self.send(f"/v2/{image_name}/manifests/{tag}")
         if not layers_result:
             print(f"error {self.last_error}")
@@ -330,6 +339,7 @@ class Registry:
         return result['fsLayers'] if result['schemaVersion'] == 1 else result['layers']
 
     def get_tag_config(self, image_name, tag):
+        """Registry.get_tag_config"""
         config_result = self.send(f"/v2/{image_name}/manifests/{tag}")
         if config_result is None:
             print(f"  tag digest not found: {self.last_error}")
@@ -345,6 +355,7 @@ class Registry:
         return tag_config
 
     def get_image_age(self, image_name, image_config):
+        """Registry.get_image_age"""
         container_header = {"Accept": f"{image_config['mediaType']}"}
 
         if 'bearer' in self.auth_schemes:
