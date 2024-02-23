@@ -323,17 +323,12 @@ class Registry:
 
     def list_tag_layers(self, image_name, tag):
         layers_result = self.send(f"/v2/{image_name}/manifests/{tag}")
-        if layers_result is None:
+        if not layers_result:
             print(f"error {self.last_error}")
             return []
 
-        json_result = json.loads(layers_result.text)
-        if json_result['schemaVersion'] == 1:
-            layers = json_result['fsLayers']
-        else:
-            layers = json_result['layers']
-
-        return layers
+        result = json.loads(layers_result.text)
+        return result['fsLayers'] if result['schemaVersion'] == 1 else result['layers']
 
     def get_tag_config(self, image_name, tag):
         config_result = self.send(f"/v2/{image_name}/manifests/{tag}")
