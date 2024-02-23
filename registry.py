@@ -54,12 +54,18 @@ LOGGER = logging.getLogger()
 # number of image versions to keep
 CONST_KEEP_LAST_VERSIONS = 10
 
+def _log_token(token: str) -> None:
+    token_parsed=token.split('.')
+    LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[0]))))
+    LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[1]))))
+
 # this class is created for testing
 class Requests:
 
     def request(self, method, url, **kwargs):
         """Requests.request"""
         return requests.request(method, url, **kwargs)
+
 
     def bearer_request(self, method, url, auth, **kwargs):
         """Requests.bearer_request"""
@@ -68,11 +74,7 @@ class Requests:
             LOGGER.debug(f'[registry][request]: {method} {url}')
             if 'Authorization' in kwargs['headers']:
                 LOGGER.debug('[registry][request]: Authorization header:')
-
-                token_parsed = kwargs['headers']['Authorization'].split('.')
-                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[0]))))
-                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[1]))))
-
+                _log_token(kwargs['headers']['Authorization'].split('.'))
         res = requests.request(method, url, **kwargs)
         if str(res.status_code)[0] == '2':
             LOGGER.debug("[registry] accepted")
@@ -109,9 +111,7 @@ class Requests:
 
             if LOGGER.getEffectiveLevel() == logging.DEBUG:
                 LOGGER.debug('[auth] token issued: ')
-                token_parsed=token.split('.')
-                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[0]))))
-                LOGGER.debug(pprint.pformat(ast.literal_eval(decode_base64(token_parsed[1]))))
+                _log_token(token)
 
             kwargs['headers']['Authorization'] = f'Bearer {token}'
         else:
