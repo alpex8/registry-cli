@@ -105,8 +105,8 @@ class Requests:
             try_oauth = requests.post(request_url, auth=auth, timeout=30, **kwargs)
 
         try:
-            oauth_response = ast.literal_eval(try_oauth.content.decode('utf-8'))
-            token = oauth_response['access_token'] if 'access_token' in oauth_response else oauth_response['token']
+            resp = ast.literal_eval(try_oauth.content.decode('utf-8'))
+            token = resp['access_token'] if 'access_token' in resp else resp['token']
         except SyntaxError:
             print(f'\n\n[ERROR] couldnt accure token: {try_oauth.content}')
             sys.exit(1)
@@ -150,7 +150,8 @@ def decode_base64(data):
 
 def get_error_explanation(context, error_code):
     error_list = {
-        "delete_tag_405": 'You might want to set REGISTRY_STORAGE_DELETE_ENABLED: "true" in your registry',
+        "delete_tag_405":
+            'You might want to set REGISTRY_STORAGE_DELETE_ENABLED: "true" in your registry',
         "get_tag_digest_404": "Try adding flag --digest-method=GET"
     }
     key = f"{context}_{error_code}"
@@ -181,8 +182,7 @@ class Registry:
 
     def __init__(self):
         """Registry.__init__"""
-        self.username = None
-        self.password = None
+        self.auth = None # None or (username, password) tuple
         self.auth_schemes = []
         self.hostname = None
         self.no_validate_ssl = False
@@ -194,12 +194,10 @@ class Registry:
     def parse_login(self, login):
         """Registry.parse_login"""
         if not login:
-            return (None, None)
-
+            return None
         if ':' not in login:
             self.last_error = "Please provide -l in the form USER:PASSWORD"
-            return (None, None)
-
+            return None
         self.last_error = None
         (username, password) = login.split(':', 1)
         username = username.strip('"').strip("'")
@@ -211,8 +209,7 @@ class Registry:
     def _create(host, login, no_validate_ssl, digest_method = "HEAD"):
         """Registry._create"""
         r = Registry()
-
-        (r.username, r.password) = r.parse_login(login)
+        r.auth = r.parse_login(login)
         if r.last_error is not None:
             print(r.last_error)
             sys.exit(1)
@@ -234,14 +231,14 @@ class Registry:
         if 'bearer' in self.auth_schemes:
             (result, self.HEADERS['Authorization']) = self.http.bearer_request(
                 method, f"{self.hostname}{path}",
-                auth=('', '') if self.username in ["", None] else (self.username, self.password),
+                auth=self.auth if self.auth else ('', ''),
                 headers=self.HEADERS,
                 verify=not self.no_validate_ssl)
         else:
             result = self.http.request(
                 method, f"{self.hostname}{path}",
                 headers=self.HEADERS,
-                auth=None if self.username == "" else (self.username, self.password),
+                auth=self.auth if self.auth else None,
                 verify=not self.no_validate_ssl)
         LOGGER.debug(f"[send]: result={result.__dict__}")
         # except Exception as error:
@@ -358,14 +355,14 @@ class Registry:
             container_header['Authorization'] = self.HEADERS['Authorization']
             (response, self.HEADERS['Authorization']) = self.http.bearer_request("GET",
                 f"{self.hostname}/v2/{image_name}/blobs/{image_config['digest']}",
-                auth=(('', '') if self.username in ["", None] else (self.username, self.password)),
+                auth=self.auth if self.auth else ('', ''),
                 headers=container_header,
                 verify=not self.no_validate_ssl)
         else:
             response = self.http.request("GET",
                 f"{self.hostname}/v2/{image_name}/blobs/{image_config['digest']}",
                 headers=container_header,
-                auth=(None if self.username == "" else (self.username, self.password)),
+                auth=self.auth if self.auth else None,
                 verify=not self.no_validate_ssl)
 
         if str(response.status_code)[0] == '2':
