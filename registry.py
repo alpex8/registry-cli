@@ -48,8 +48,8 @@ from dateutil.tz import tzutc
 
 # pylint: disable=logging-fstring-interpolation
 
-# logger object for debug loggging
-LOGGER = logging.getLogger()
+# logger object for debug logging
+LOGGER = logging.getLogger(__name__)
 
 # number of image versions to keep
 CONST_KEEP_LAST_VERSIONS = 10
@@ -814,9 +814,11 @@ def main_loop(args):
                                args.delete_by_hours, keep_tags)
 
 if __name__ == "__main__":
+    logging.basicConfig()
     ARGS = parse_args()
     if bool(ARGS.debug):
         LOGGER.setLevel(logging.DEBUG)
+        LOGGER.debug("registry-cli started")
     try:
         main_loop(ARGS)
     except KeyboardInterrupt:
