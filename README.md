@@ -5,18 +5,81 @@ registry.py is a script for easy manipulation of docker-registry from command li
 
 ## Table of Contents
 
-* [Installation](#installation)
-  * [Docker image](#docker-image)
-  * [Python script](#python-script)
-* [Listing images](#listing-images)
-* [Username and password](#username-and-password)
-* [Deleting images](#deleting-images)
-* [Disable ssl verification](#disable-ssl-verification)
-* [Nexus docker registry](#nexus-docker-registry)
-* [Important notes](#important-notes)
-  * [garbage-collection in docker-registry](#garbage-collection-in-docker-registry)
-  * [enable image deletion in docker-registry](#enable-image-deletion-in-docker-registry)
-* [Contribution](#contribution)
+- [registry-cli](#registry-cli)
+  - [Table of Contents](#table-of-contents)
+  - [Short Help](#short-help)
+  - [Installation](#installation)
+    - [Docker image](#docker-image)
+    - [python script](#python-script)
+  - [Listing images](#listing-images)
+  - [Username and password](#username-and-password)
+  - [Deleting images](#deleting-images)
+  - [Disable ssl verification](#disable-ssl-verification)
+  - [Nexus docker registry](#nexus-docker-registry)
+  - [Important notes:](#important-notes)
+    - [garbage-collection in docker-registry](#garbage-collection-in-docker-registry)
+    - [enable image deletion in docker-registry](#enable-image-deletion-in-docker-registry)
+  - [Contribution](#contribution)
+- [Contact](#contact)
+
+## Short Help
+
+```
+usage: registry.py [-h] [-l USER:PASSWORD] [-w] -r URL [-d] [-n [N]] [--debug] [--dry-run] [-i IMAGE:[TAG] [IMAGE:[TAG] ...]] [--images-like IMAGES_LIKE [IMAGES_LIKE ...]] [--keep-tags KEEP_TAGS [KEEP_TAGS ...]]
+                   [--tags-like TAGS_LIKE [TAGS_LIKE ...]] [--keep-tags-like KEEP_TAGS_LIKE [KEEP_TAGS_LIKE ...]] [--no-validate-ssl] [--delete-all] [--layers] [--delete-by-hours [Hours]] [--keep-by-hours [Hours]]
+                   [--digest-method HEAD|GET] [--auth-method POST|GET] [--order-by-date] [--plain]
+
+List or delete images from Docker registry
+
+options:
+  -h, --help            show this help message and exit
+  -l USER:PASSWORD, --login USER:PASSWORD
+                        Login and password for access to docker registry
+  -w, --read-password   Read password from stdin (and prompt if stdin is a TTY); the final line-ending character(s) will be removed; the :PASSWORD portion of the -l option is not required and will be ignored
+  -r URL, --host URL    Hostname for registry server, e.g. https://example.com:5000
+  -d, --delete          If specified, delete all but last 10 tags of all images
+  -n [N], --num [N]     Set the number of tags to keep 10 if not set)
+  --debug               Turn debug output
+  --dry-run             If used in combination with --delete,then images will not be deleted
+  -i IMAGE:[TAG] [IMAGE:[TAG] ...], --image IMAGE:[TAG] [IMAGE:[TAG] ...]
+                        Specify images and tags to list/delete
+  --images-like IMAGES_LIKE [IMAGES_LIKE ...]
+                        List of images (regexp check) that will be handled
+  --keep-tags KEEP_TAGS [KEEP_TAGS ...]
+                        List of tags that will be omitted from deletion if used in combination with --delete or --delete-all
+  --tags-like TAGS_LIKE [TAGS_LIKE ...]
+                        List of tags (regexp check) that will be handled
+  --keep-tags-like KEEP_TAGS_LIKE [KEEP_TAGS_LIKE ...]
+                        List of tags (regexp check) that will be omitted from deletion if used in combination with --delete or --delete-all
+  --no-validate-ssl     Disable ssl validation
+  --delete-all          Will delete all tags. Be careful with this!
+  --layers              Show layers digests for all images and all tags
+  --delete-by-hours [Hours]
+                        Will delete all tags that are older than specified hours. Be careful!
+  --keep-by-hours [Hours]
+                        Will keep all tags that are newer than specified hours.
+  --digest-method HEAD|GET
+                        Use HEAD for standard docker registry or GET for NEXUS
+  --auth-method POST|GET
+                        Use POST or GET to get JWT tokens
+  --order-by-date       Orders images by date instead of by tag name.Useful if your tag names are not in a fixed order.
+  --plain               Turn plain output, one image:tag per line.Useful if your want to send the results to another command.
+
+IMPORTANT: after removing the tags, run the garbage collector
+           on your registry host:
+
+   docker-compose -f [path_to_your_docker_compose_file] run \
+       registry bin/registry garbage-collect \
+       /etc/docker/registry/config.yml
+
+or if you are not using docker-compose:
+
+   docker run registry:2 bin/registry garbage-collect \
+       /etc/docker/registry/config.yml
+
+for more detail on garbage collection read here:
+   https://docs.docker.com/registry/garbage-collection/
+```
 
 ## Installation
 
